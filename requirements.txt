@@ -1,0 +1,5 @@
+dipy
+fury
+numba
+dicom2nifti
+matplotlib

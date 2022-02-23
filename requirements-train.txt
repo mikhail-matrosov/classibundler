@@ -1,0 +1,6 @@
+dipy
+# catboost
+fury
+pykdtree
+ipywidgets
+matplotlib
