@@ -12,14 +12,14 @@ from os.path import join as pjoin
 from scipy.stats import ttest_ind_from_stats
 
 from processor import Patient
-from config import mri_data_dir, group_names, output_dir
+import config
 
 import matplotlib
 matplotlib.use('Agg')  # File rendering
 import matplotlib.pyplot as plt
 
 
-os.makedirs(output_dir, exist_ok=True)
+os.makedirs(config.output_dir, exist_ok=True)
 
 # Collect profiles for every patient in each group
 profiles_dict = {k: {} for k in ['FA', 'RD', 'AD', 'MD']}
@@ -41,9 +41,9 @@ def means_std(means, stds):
     return np.sqrt(std2 / N)
 
 
-for gn in group_names:
+for gn in config.group_names:
     group = []
-    gdir = pjoin(mri_data_dir, gn)
+    gdir = pjoin(config.mri_dir, gn)
     patients = sorted(os.listdir(gdir))
 
     for p in patients:
@@ -76,7 +76,7 @@ for gn in group_names:
         }
 
 # Calculate pvalues
-gn1, gn2 = group_names[:2]
+gn1, gn2 = config.group_names[:2]
 for k, d in profiles_dict.items():
     for ln in d[gn2]:
         if ln and d[gn1][ln]['profiles'] and d[gn2][ln]['profiles']:
@@ -105,7 +105,7 @@ fig.patch.set_alpha(1.0)
 for r, p in enumerate(profiles_dict):
     for c, b in enumerate(bundle_names):
         index = ncols*r + c
-        for gn, col in zip(group_names, colors):
+        for gn, col in zip(config.group_names, colors):
             profs = profiles_dict[p][gn]
             if b in profs:
                 ax = plt.subplot(nrows, ncols, index+1)
@@ -139,7 +139,7 @@ for r, p in enumerate(profiles_dict):
                     plt.legend(loc='upper right')
 
 
-fname = pjoin(output_dir, 'profiles_plot_1')
+fname = pjoin(config.output_dir, 'profiles_plot_1')
 # plt.savefig(fname + '.pdf')
 # plt.savefig(fname + '.svg')
 plt.savefig(fname + '.png', dpi=150, bbox_inches='tight')
@@ -164,7 +164,7 @@ fig.patch.set_alpha(1.0)
 for r, bs in enumerate(bundle_names):
     for c, b in enumerate(bs):
         index = ncols*r + c
-        for gn, col in zip(group_names, colors):
+        for gn, col in zip(config.group_names, colors):
             profs = profiles_dict['FA'][gn]
             if b in profs:
                 ax = plt.subplot(nrows, ncols, index+1)
@@ -195,7 +195,7 @@ for r, bs in enumerate(bundle_names):
                     plt.legend(loc='upper right')
 
 
-fname = pjoin(output_dir, 'profiles_plot_2')
+fname = pjoin(config.output_dir, 'profiles_plot_2')
 #plt.savefig(fname + '.pdf')
 # plt.savefig(fname + '.svg')
 plt.savefig(fname + '.png', dpi=150, bbox_inches='tight')
@@ -218,7 +218,7 @@ fig.patch.set_alpha(1.0)
 for r, bs in enumerate(bundle_names):
     for c, b in enumerate(bs):
         index = ncols*r + c
-        for gn, col in zip(group_names, colors):
+        for gn, col in zip(config.group_names, colors):
             profs = profiles_dict['FA'][gn]
             if b in profs:
                 ax = plt.subplot(nrows, ncols, index+1)
@@ -249,7 +249,7 @@ for r, bs in enumerate(bundle_names):
                     plt.legend(loc='upper right')
 
 
-fname = pjoin(output_dir, 'profiles_plot_3')
+fname = pjoin(config.output_dir, 'profiles_plot_3')
 #plt.savefig(fname + '.pdf')
 # plt.savefig(fname + '.svg')
 plt.savefig(fname + '.png', dpi=150, bbox_inches='tight')
