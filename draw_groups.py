@@ -11,8 +11,9 @@ import os
 from os.path import join as pjoin
 from scipy.stats import ttest_ind_from_stats
 
-from processor import Patient
+from patient import Patient
 import config
+from features import features_unpacked, extract_features
 
 import matplotlib
 matplotlib.use('Agg')  # File rendering
@@ -22,7 +23,8 @@ import matplotlib.pyplot as plt
 os.makedirs(config.output_dir, exist_ok=True)
 
 # Collect profiles for every patient in each group
-profiles_dict = {k: {} for k in ['FA', 'RD', 'AD', 'MD']}
+profiles_dict = {k: {g: {} for g in config.group_names}
+                 for k in ['FA', 'RD', 'AD', 'MD']}
 
 colors = ['blue', 'red', 'green', 'black']
 
@@ -42,38 +44,55 @@ def means_std(means, stds):
 
 
 for gn in config.group_names:
-    group = []
     gdir = pjoin(config.mri_dir, gn)
-    patients = sorted(os.listdir(gdir))
+    patients_names = sorted(p for p in os.listdir(gdir) if '!' not in p)
+    patients_data = []
 
-    for p in patients:
-        if '!' in p:
-            print('IGNORING', gn, p)
-        else:
-            print(gn, p)
-            patient = Patient(pjoin(gdir, p))
-            group.append({
-                'FA': patient.profiles_metric('data_s_DKI_fa'),
-                'RD': patient.profiles_metric('data_s_DKI_rd'),
-                'AD': patient.profiles_metric('data_s_DKI_ad'),
-                'MD': patient.profiles_metric('data_s_DKI_md'),
-            })
+    for p in patients_names:
+        patient = Patient(pjoin(gdir, p))
+        patients_data.append({
+            'FA': patient.profiles_metric('data_s_DKI_fa'),
+            'RD': patient.profiles_metric('data_s_DKI_rd'),
+            'AD': patient.profiles_metric('data_s_DKI_ad'),
+            'MD': patient.profiles_metric('data_s_DKI_md'),
+        })
 
     label_names = patient.atlas_centroids['label_names']
 
-    for k, d in profiles_dict.items():
-        d[gn] = {
-            ln: {
-                'profiles': [p[k][ln]['mean'] for p in group if ln in p[k]],
-                'mean': np.mean([p[k][ln]['mean'] for p in group if ln in p[k]], 0),
-                'std': profiles_std([p[k][ln]['mean'] for p in group if ln in p[k]],
-                                    [p[k][ln]['std']  for p in group if ln in p[k]]),
-                'profiles_mean': np.mean([p[k][ln]['mean'].mean() for p in group if ln in p[k]]),
-                'profiles_mean_std': means_std([p[k][ln]['mean'].mean() for p in group if ln in p[k]],
-                                               [p[k][ln]['profiles'].mean(1).std() for p in group if ln in p[k]])
+    # Calculate statistics for plots
+    for m, d in profiles_dict.items():
+        for ln in label_names:
+            ps = [p[m][ln] for p in patients_data if ln in p[m]]
+
+            d[gn][ln] = {
+                'profiles': [p['mean'] for p in ps],
+                'mean': np.mean([p['mean'] for p in ps], 0),
+                'std': profiles_std([p['mean'] for p in ps],
+                                    [p['std']  for p in ps]),
+                'profiles_mean': np.mean([p['mean'].mean() for p in ps]),
+                'profiles_mean_std': means_std([p['mean'].mean() for p in ps],
+                                               [p['profiles'].mean(1).std() for p in ps])
             }
-            for ln in label_names
-        }
+
+    # Calculate features
+    features = {
+        pn: extract_features(pdata)
+        for pn, pdata in zip(patients_names, patients_data)
+    }
+    # Write features to a file
+    with open(pjoin(config.output_dir, f'Features_{gn}.csv'), 'wt') as f:
+        fns = [f.name for f in features_unpacked]  # Feature names
+        header = ','.join([''] + [col for h in fns for col in (h, 'std')])
+        rows = [f'{p},' + ','.join(f'{x:.3f}' for fn in fns for x in fs[fn])
+                for p, fs in features.items()]
+        f.write('\n'.join([header, *rows]))
+
+
+# Write healthy profiles for later use
+import pickle
+with open(pjoin(config.output_dir, 'profiles_dict_healthy.pkl'), 'wb') as f:
+    pickle.dump({k: d['Healthy'] for k, d in profiles_dict.items()}, f)
+
 
 # Calculate pvalues
 gn1, gn2 = config.group_names[:2]
