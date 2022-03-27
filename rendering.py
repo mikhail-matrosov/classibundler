@@ -7,7 +7,9 @@ Created on Sun Mar 27 02:36:23 2022
 """
 
 import numpy as np
+from os.path import join as pjoin
 from drawing_utils import normalized
+from features import features_unpacked
 
 
 bundle_viewpoints = {
@@ -68,9 +70,9 @@ def render_bundle(streamlines, bundle,
 
     scene = window.Scene()
     scene.SetBackground(1, 1, 1)
-    if streamlines:
+    if streamlines is not None and len(streamlines):
         scene.add(actor.streamtube(
-            streamlines[::10],
+            streamlines,
             colors=(0, 0, 0),
             linewidth=0.1,
             opacity=0.05
@@ -90,9 +92,10 @@ def render_bundle(streamlines, bundle,
     distance = np.linalg.norm(center - cam_pos)
     fov = np.rad2deg(diameter / distance)
 
-    # Add arrow
-    direction = normalized(bundle[0][-1] - bundle[0][-2])
-    scene.add(actor.arrow([bundle[0][-1] + direction * diameter * 0.05],
+    # Direction arrow
+    b0 = bundle[0]
+    direction = normalized(b0[-1] - b0[len(b0) // 3 * 2])
+    scene.add(actor.arrow([b0[-1] + direction * diameter * 0.05],
                           [direction],
                           colors=(1, 0, 0),
                           heights=diameter * 0.07))
@@ -119,10 +122,36 @@ def render_bundle(streamlines, bundle,
         window.show(scene, size=(size, size), reset_camera=False)
         scene.camera_info()
 
+
+def render_bundles(patient, output_dir, ghost_streamlines=True):
+    # Render bundles
+    for b, cam_pos in bundle_viewpoints.items():
+        try:
+            features = sorted({
+                    f.slice for f in features_unpacked
+                    if f.bundle==b and f.slice[1] - f.slice[0] < 70
+                },
+                key=lambda s: (s[0]-s[1], s[0])
+            )
+
+            render_bundle(patient.streamlines[::10] if ghost_streamlines else [],
+                          patient.classified_bundles[b],
+                          cam_pos=cam_pos,
+                          features=features,
+                          fname=pjoin(output_dir, f'{b}.jpg'))
+        except:
+            pass
+
+
 '''
-patient_folder = '/media/miha/0c44a000-6bfa-4732-929b-f31bc6cf4011/miha/YandexDisk/MRI/Alexey/Patients/Healthy/KremnevaLA'
+fprefix = '/media/miha/0c44a000-6bfa-4732-929b-f31bc6cf4011/miha/YandexDisk/MRI/Alexey'
+patient_folder = fprefix + '/Patients/Healthy/KremnevaLA'
 patient = Patient(patient_folder)
 streamlines = patient.streamlines
 bundle = patient.classified_bundles['UF_L']
 render_bundle(patient.streamlines, patient.classified_bundles['EMC_L'])
+
+
+patient = Atlas()
+render_bundles(patient, fprefix + '/Bundles')
 '''

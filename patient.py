@@ -180,3 +180,21 @@ class Patient:
         }
         return extract_features(patient_data)
 
+
+class Atlas(Patient):
+    def __init__(self):
+        self.folder = ''
+
+    @property
+    def streamlines(self):
+        return self.atlas['streamlines']
+
+    @property
+    def regestered_streamlines(self):
+        return self.atlas['streamlines']
+
+    @property
+    def streamlines_classification(self):
+        self.is_reversed = np.zeros(len(self.atlas['labels']))
+        return self.atlas['labels']
+

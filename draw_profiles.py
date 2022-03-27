@@ -15,9 +15,8 @@ from os.path import join as pjoin
 import sys
 
 from patient import Patient
-from features import features_unpacked
 from drawing_utils import colorize_bundle
-from rendering import render_bundle, bundle_viewpoints
+from rendering import render_bundles
 
 import matplotlib
 matplotlib.use('Agg')  # File rendering
@@ -156,26 +155,7 @@ def draw_profiles(patient_folder):
     # plt.savefig(fname + '.svg')
     plt.savefig(fname + '.png', dpi=150, bbox_inches='tight')
 
-    # Render bundles
-    for b, cam_pos in bundle_viewpoints.items():
-        if b in fa_profiles:
-            try:
-                features = sorted({
-                    f.slice for f in features_unpacked
-                    if f.bundle==b and f.slice[1] - f.slice[0] < 70
-                }, key=lambda s: (s[0]-s[1], s[0]))
-                render_bundle(patient.streamlines,
-                              patient.classified_bundles[b],
-                              cam_pos=cam_pos,
-                              features=features,
-                              fname=pjoin(output_dir, f'{b}.jpg'))
-#                render_bundle([],
-#                              patient.classified_bundles[b],
-#                              cam_pos=cam_pos,
-#                              features=features,
-#                              fname=pjoin(output_dir, f'{b}.jpg'))
-            except:
-                pass
+    render_bundles(patient, output_dir)
 
 
 print(sys.argv)
