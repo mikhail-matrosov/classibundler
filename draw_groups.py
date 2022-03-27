@@ -112,8 +112,10 @@ for k, d in profiles_dict.items():
             ]
 
 
-X = np.linspace(0, 100, 100)
+S = config.profiles_slice
+X = np.linspace(0, 100, 100)[S]
 print('Plot 1...')
+
 
 # FOR ALEXEY
 bundle_names = 'CST_L CST_R CC_ForcepsMajor CC_ForcepsMinor CC_Mid'.split()
@@ -141,9 +143,9 @@ for r, p in enumerate(profiles_dict):
                 pstd = profs[b]['profiles_mean_std']
                 # All tracts
                 for profile in profiles:
-                    plt.plot(X, profile, color=col, alpha=0.1)
-                plt.plot(X, mean, color=col, label=f'{gn} (N={N}, {pmean:.2f}±{pstd:.2f})')
-                plt.fill_between(X, mean-std, mean+std, color=col, alpha=0.2)
+                    plt.plot(X, profile[S], color=col, alpha=0.1)
+                plt.plot(X, mean[S], color=col, label=f'{gn} (N={N}, {pmean:.2f}±{pstd:.2f})')
+                plt.fill_between(X, mean[S]-std[S], mean[S]+std[S], color=col, alpha=0.2)
                 leg = plt.legend(loc='upper left')
                 plt.grid(b=True)
 
@@ -152,7 +154,7 @@ for r, p in enumerate(profiles_dict):
                     ax2 = ax.twinx()  # instantiate a second axes that shares the same x-axis
                     color = 'tab:green'
 #                    ax2.set_ylabel('pvalue', color=color)
-                    ax2.semilogy(X, profs[b]['pvalue'], color=color, label='P-values')
+                    ax2.semilogy(X, profs[b]['pvalue'][S], color=color, label='P-values')
                     ax2.tick_params(axis='y', labelcolor=color)
                     ax2.set_ylim(1, 1e-6)  # ax2.get_ylim()[0])
                     plt.legend(loc='upper right')
@@ -197,9 +199,9 @@ for r, bs in enumerate(bundle_names):
                 pstd = profs[b]['profiles_mean_std']
                 # All tracts
                 for profile in profiles:
-                    plt.plot(X, profile, color=col, alpha=0.1)
-                plt.plot(X, mean, color=col, label=f'{gn} (N={N}, {pmean:.2f}±{pstd:.2f}))')
-                plt.fill_between(X, mean-std, mean+std, color=col, alpha=0.2)
+                    plt.plot(X, profile[S], color=col, alpha=0.1)
+                plt.plot(X, mean[S], color=col, label=f'{gn} (N={N}, {pmean:.2f}±{pstd:.2f}))')
+                plt.fill_between(X, mean[S]-std[S], mean[S]+std[S], color=col, alpha=0.2)
                 leg = plt.legend(loc='upper left')
                 plt.grid(b=True)
 
@@ -208,7 +210,7 @@ for r, bs in enumerate(bundle_names):
                     ax2 = ax.twinx()  # instantiate a second axes that shares the same x-axis
                     color = 'tab:green'
 #                    ax2.set_ylabel('pvalue', color=color)
-                    ax2.semilogy(X, profs[b]['pvalue'], color=color, label='P-values')
+                    ax2.semilogy(X, profs[b]['pvalue'][S], color=color, label='P-values')
                     ax2.tick_params(axis='y', labelcolor=color)
                     ax2.set_ylim(1, 1e-6)  # ax2.get_ylim()[0])
                     plt.legend(loc='upper right')
@@ -251,9 +253,9 @@ for r, bs in enumerate(bundle_names):
                 pstd = profs[b]['profiles_mean_std']
                 # All tracts
                 for profile in profiles:
-                    plt.plot(X, profile, color=col, alpha=0.1)
-                plt.plot(X, mean, color=col, label=f'{gn} (N={N}, {pmean:.2f}±{pstd:.2f}))')
-                plt.fill_between(X, mean-std, mean+std, color=col, alpha=0.2)
+                    plt.plot(X, profile[S], color=col, alpha=0.1)
+                plt.plot(X, mean[S], color=col, label=f'{gn} (N={N}, {pmean:.2f}±{pstd:.2f}))')
+                plt.fill_between(X, mean[S]-std[S], mean[S]+std[S], color=col, alpha=0.2)
                 leg = plt.legend(loc='upper left')
                 plt.grid(b=True)
 
@@ -262,7 +264,7 @@ for r, bs in enumerate(bundle_names):
                     ax2 = ax.twinx()  # instantiate a second axes that shares the same x-axis
                     color = 'tab:green'
 #                    ax2.set_ylabel('pvalue', color=color)
-                    ax2.semilogy(X, profs[b]['pvalue'], color=color, label='P-values')
+                    ax2.semilogy(X, profs[b]['pvalue'][S], color=color, label='P-values')
                     ax2.tick_params(axis='y', labelcolor=color)
                     ax2.set_ylim(1, 1e-6)  # ax2.get_ylim()[0])
                     plt.legend(loc='upper right')
