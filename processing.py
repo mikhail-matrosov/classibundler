@@ -154,7 +154,7 @@ def get_profile_weights(classified_bundles, centroids, clabels):
 def get_bundle_profile(bundle, weights, volumetric, affine):
     from dipy.stats.analysis import afq_profile
 
-    profiles = np.array([afq_profile(volumetric, [o], affine) for o in bundle])
+    profiles = np.array([afq_profile(volumetric.squeeze(), [o], affine) for o in bundle])
     mean = np.sum(profiles * weights, 0)
     std = np.sqrt(np.average(np.square(profiles-mean), weights=weights, axis=0))
     return {
