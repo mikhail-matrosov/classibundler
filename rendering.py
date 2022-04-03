@@ -11,9 +11,6 @@ from os.path import join as pjoin
 from drawing_utils import normalized
 from features import features_unpacked
 
-import fury
-cc = fury.colormap.cc
-
 
 bundle_viewpoints = {
     'CST_L': (-1000, 0, 0),
@@ -230,10 +227,10 @@ def render_bundles(patient, output_dir):
             render_bundle([],
                           patient.classified_bundles[b],
                           cam_pos=cam_pos,
-                          colorscheme='plasma',
+                          colorscheme='inferno',
                           profiles=profiles[b]['profiles'],
                           metric_name='FA',
-                          fname=pjoin(output_dir, f'{b}-fa.jpg'),
+                          fname=pjoin(output_dir, f'{b}_FA.jpg'),
                           )
         except:
             pass
@@ -256,7 +253,7 @@ render_bundle(patient.streamlines, bundle, cam_pos=cam_pos, arrow=1)
 patient = Patient(patient_folder)
 bundle = patient.classified_bundles[bundle_name]
 profiles = patient.profiles_metric('data_s_DKI_fa')[bundle_name]['profiles']
-render_bundle([], bundle, cam_pos=cam_pos, colorscheme='plasma', profiles=profiles, metric_name='FA')
+render_bundle([], bundle, cam_pos=cam_pos, colorscheme='inferno', profiles=profiles, metric_name='FA')
 
 # Render all
 patient = Patient(patient_folder)

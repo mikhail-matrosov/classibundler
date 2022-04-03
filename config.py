@@ -25,4 +25,4 @@ profiles_slice = slice(5, 95)  # slice(None) - all
 draw_healthy = True  # For each single patient
 render_whole_brain_ghost = True
 group_names = ('Healthy', 'F3_MRT2')
-nthreads = 8  # 1 for singleprocessing
+nthreads = 4  # 1 for singleprocessing

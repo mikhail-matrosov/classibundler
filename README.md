@@ -1,8 +1,11 @@
 # Classibundler
 
+| ![](imgs/CST_R.jpg) | ![](imgs/CST_R_FA.jpg) | ![](imgs/profiles_plot_1_preview.jpg) |
+|-|-|-|
+
 ## Brain Bundle Analisys for Humans
 
-Is an extention of Dipy package, including
+Is an extention of [Dipy](https://dipy.org/) package, including
 
 - A better bundle classifier  
 - An API for managing patients  
@@ -14,6 +17,7 @@ Is an extention of Dipy package, including
 - [x] Выключать пациентов из группы, если в имени есть `!`  
 - [x] Строить графики для FA, AD, RD, MD  
 - [x] График p-value  
+- [x] Раскрасить пучки в цвет FA
 - [ ] Референсные линии для p-value  
 - [ ] Вынести p-value на отдельный график  
 - [x] Рисовать пучки по каждому пациенту  
