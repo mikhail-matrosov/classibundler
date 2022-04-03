@@ -24,4 +24,5 @@ output_dir = '/media/miha/0c44a000-6bfa-4732-929b-f31bc6cf4011/miha/YandexDisk/M
 profiles_slice = slice(5, 95)  # slice(None) - all
 draw_healthy = True  # For each single patient
 render_whole_brain_ghost = True
-group_names = ('Healthy', 'ALS')
+group_names = ('Healthy', 'F3_MRT2')
+nthreads = 8  # 1 for singleprocessing

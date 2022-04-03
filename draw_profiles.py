@@ -17,6 +17,7 @@ import sys
 from patient import Patient
 from drawing_utils import colorize_bundle
 from rendering import render_bundles
+import config
 
 import matplotlib
 matplotlib.use('Agg')  # File rendering
@@ -162,16 +163,22 @@ print(sys.argv)
 #folder = '/home/miha/mri/Healthy/GadzhievATO'
 folder = sys.argv[-1]
 
-from concurrent.futures import ProcessPoolExecutor
-pool = ProcessPoolExecutor(4)
+# Multiprocessing
+if config.nthreads > 1:
+    from concurrent.futures import ProcessPoolExecutor
+    pool = ProcessPoolExecutor(config.nthreads)
+    pool_map = pool.map
+else:
+    pool_map = map
 
-if len(sys.argv) > 2:
+
+if len(sys.argv) > 1:
     if sys.argv[1] == '-m':
         # Process multiple patients from a folder
         paths = [pjoin(f, p) for f in sys.argv[2:] for p in sorted(os.listdir(f))]
-        pool.map(draw_profiles, paths)
+        pool_map(draw_profiles, paths)
     else:
-        pool.map(draw_profiles, sys.argv[1:])
+        pool_map(draw_profiles, sys.argv[1:])
 else:
     print('''
 Usage:

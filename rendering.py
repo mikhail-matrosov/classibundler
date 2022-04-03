@@ -11,6 +11,9 @@ from os.path import join as pjoin
 from drawing_utils import normalized
 from features import features_unpacked
 
+import fury
+cc = fury.colormap.cc
+
 
 bundle_viewpoints = {
     'CST_L': (-1000, 0, 0),
@@ -40,24 +43,81 @@ bundle_viewpoints = {
 }
 
 
-def pyrdn(img, fac=4):
+def pyr_dn(img, fac=4):
     h, w, d = img.shape
     lut = np.square(np.arange(256, dtype=np.float32))
     ds = lut[img].reshape((h//fac, fac, w//fac, fac, d)).mean(3).mean(1)
     return (np.sqrt(ds) + 0.5).astype(np.uint8)
 
 
-def render_bundle(streamlines, bundle,
+def beauty_bar_range(m, M, n_ticks=5):
+    r = M - m
+    tick = r / n_ticks
+    scale = round(np.log10(tick))
+    good_ticks = [.1, .15, .2, .25, .3, .4, .5, .75, 1]
+    good_ticks = np.array(sorted(t * 10**s for s in range(scale-1, scale+2) for t in good_ticks))
+    tick = good_ticks[good_ticks > tick][0]
+    excessive = tick * n_ticks - r
+    M = round((M + excessive / 2)/tick) * tick
+    m = M - tick * n_ticks
+    return m, M
+
+
+def cmap_to_lut(cmap, min, max):
+    '''
+    Converts matplotlib.pyplot.ListedColormap to fury.lib.LookupTable
+    '''
+    import vtk
+    from fury.lib import LookupTable
+
+    table = (np.array(cmap.colors)*255 + 0.5).astype(np.uint8)
+
+    vcolors = vtk.vtkUnsignedCharArray()
+    vcolors.SetNumberOfComponents(4)
+    vcolors.SetName("Colors")
+    vcolors.SetNumberOfTuples(table.shape[0])
+    for i, col in enumerate(table):
+        vcolors.SetTuple4(i, *col, 0)
+
+    lut = LookupTable()
+    lut.SetTableRange((min, max))
+    lut.SetTable(vcolors)
+
+    return lut
+
+
+def render_bundle(streamlines, bundle, *,
                   cam_pos=(-1000, 0, 0),
-                  features=[(10, 20)],
-                  fname=None,
+                  features=[],  # e.g. [(10, 20)]
+                  fname=None,  # None - show in a window
+                  colorscheme=None,  # None=green, 'RAINBOW', or plt colormaps
+                  profiles=None,  # required if colorscheme is from plt, e.g. colorscheme='plasma'
+                  metric_name = '', # E.g. 'FA'
+                  arrow=False,
                   size=512):
     from fury import actor, window
     from dipy.tracking.streamline import set_number_of_points
 
-    bundle = set_number_of_points(bundle, 100)
-    colors = np.zeros((100, 3), dtype=np.float32)
-    colors[:] = (0, 1, 0)
+    NP = 100 if profiles is None else profiles.shape[1]
+    bundle = set_number_of_points(bundle, NP)
+
+    img_scale = 4 if fname else 1
+
+    # Colorize
+    if colorscheme:
+        if colorscheme == 'RAINBOW':
+            pass
+        else:
+            import matplotlib.pyplot as plt
+            cmap = plt.get_cmap(colorscheme)
+            m, M = np.min(profiles), np.max(profiles)
+#            m, M = beauty_bar_range(m, M)
+            colors = cmap((profiles - m) / (M - m))
+    else:
+        colors = np.zeros((len(bundle), NP, 3), dtype=np.float32)
+        colors[:] = (0, 1, 0)
+
+    # Mark features
     feature_colors = [
         (1, 0, 0),
         (.7, .7, 0),
@@ -66,7 +126,7 @@ def render_bundle(streamlines, bundle,
         (1, 0, 1)
     ]
     for (l, h), col in zip(features, feature_colors):
-        colors[l:h] = col
+        colors[:, l:h] = col
 
     scene = window.Scene()
     scene.SetBackground(1, 1, 1)
@@ -77,14 +137,33 @@ def render_bundle(streamlines, bundle,
             linewidth=0.1,
             opacity=0.05
         ))
-    for b in bundle:
-        scene.add(actor.streamtube(
-            [b],
-            colors=colors,
-            linewidth=0.1,
-            opacity=0.5
-        ))
+    for b, col in zip(bundle, colors):
+        if colorscheme:
+            scene.add(actor.line(
+                [b],
+                colors=col,
+                linewidth=img_scale*2,
+                depth_cue=True,
+                opacity=0.5
+            ))
 
+        else:
+            scene.add(actor.streamtube(
+                [b],
+                colors=col,
+                linewidth=0.1,
+                opacity=0.5
+            ))
+
+    if colorscheme:
+        bar = actor.scalar_bar(cmap_to_lut(cmap, m, M), metric_name.ljust(8))
+        bar.GetTitleTextProperty().SetColor(0.1, 0.1, 0.1)
+        bar.GetLabelTextProperty().SetColor(0.1, 0.1, 0.1)
+        bar.SetWidth(0.1)
+        bar.SetBarRatio(0.2)
+        scene.add(bar)
+
+    # Detect bundle bounding box
     m = np.min([f.min(0) for f in bundle], 0)
     M = np.max([f.max(0) for f in bundle], 0)
     center = (m+M) / 2
@@ -93,13 +172,15 @@ def render_bundle(streamlines, bundle,
     fov = np.rad2deg(diameter / distance)
 
     # Direction arrow
-    b0 = bundle[0]
-    direction = normalized(b0[-1] - b0[len(b0) // 3 * 2])
-    scene.add(actor.arrow([b0[-1] + direction * diameter * 0.05],
-                          [direction],
-                          colors=(1, 0, 0),
-                          heights=diameter * 0.07))
+    if arrow:
+        b0 = bundle[0]
+        direction = normalized(b0[-1] - b0[len(b0) // 3 * 2])
+        scene.add(actor.arrow([b0[-1] + direction * diameter * 0.05],
+                              [direction],
+                              colors=(1, 0, 0),
+                              heights=diameter * 0.07))
 
+    # Point camera at the bundle
     cam = scene.camera()
     cam.SetViewAngle(fov)
     cam.SetClippingRange(100, 10000)
@@ -114,17 +195,20 @@ def render_bundle(streamlines, bundle,
 
     if fname:
         # Render in higher resolution, downscale and save to file
-        img = window.snapshot(scene, fname=None, size=(4*size, 4*size),
-                              order_transparent=True, multi_samples=1)
-        window.save_image(pyrdn(img), fname)
+        img = window.snapshot(scene, fname=None,
+                              size=(img_scale*size, img_scale*size),
+                              order_transparent=True,
+                              multi_samples=1)
+        window.save_image(pyr_dn(img, img_scale), fname)
     else:
         # Interactive
-        window.show(scene, size=(size, size), reset_camera=False)
+        window.show(scene, size=(img_scale*size, img_scale*size), reset_camera=False)
         scene.camera_info()
 
 
-def render_bundles(patient, output_dir, ghost_streamlines=True):
+def render_bundles(patient, output_dir):
     # Render bundles
+    profiles = patient.profiles_metric('data_s_DKI_fa')
     for b, cam_pos in bundle_viewpoints.items():
         try:
             features = sorted({
@@ -134,24 +218,53 @@ def render_bundles(patient, output_dir, ghost_streamlines=True):
                 key=lambda s: (s[0]-s[1], s[0])
             )
 
-            render_bundle(patient.streamlines[::10] if ghost_streamlines else [],
+            # With ghost and arrow
+            render_bundle(patient.streamlines[::10],
                           patient.classified_bundles[b],
                           cam_pos=cam_pos,
                           features=features,
-                          fname=pjoin(output_dir, f'{b}.jpg'))
+                          fname=pjoin(output_dir, f'{b}.jpg'),
+                          arrow=1)
+
+            # FA With a colormap
+            render_bundle([],
+                          patient.classified_bundles[b],
+                          cam_pos=cam_pos,
+                          colorscheme='plasma',
+                          profiles=profiles[b]['profiles'],
+                          metric_name='FA',
+                          fname=pjoin(output_dir, f'{b}-fa.jpg'),
+                          )
         except:
             pass
 
 
 '''
 fprefix = '/media/miha/0c44a000-6bfa-4732-929b-f31bc6cf4011/miha/YandexDisk/MRI/Alexey'
-patient_folder = fprefix + '/Patients/Healthy/KremnevaLA'
+patient_folder = pjoin(fprefix, 'Patients/Healthy/KremnevaLA')
+from patient import Patient
+bundle_name = 'PPT_L'
+cam_pos = bundle_viewpoints[bundle_name]
+
+# With ghost brain
 patient = Patient(patient_folder)
 streamlines = patient.streamlines
-bundle = patient.classified_bundles['UF_L']
-render_bundle(patient.streamlines, patient.classified_bundles['EMC_L'])
+bundle = patient.classified_bundles[bundle_name]
+render_bundle(patient.streamlines, bundle, cam_pos=cam_pos, arrow=1)
+
+# Colorized
+patient = Patient(patient_folder)
+bundle = patient.classified_bundles[bundle_name]
+profiles = patient.profiles_metric('data_s_DKI_fa')[bundle_name]['profiles']
+render_bundle([], bundle, cam_pos=cam_pos, colorscheme='plasma', profiles=profiles, metric_name='FA')
+
+# Render all
+patient = Patient(patient_folder)
+render_bundles(patient, pjoin(patient_folder, 'PICS'))
 
 
+# Atlas
+from patient import Atlas
 patient = Atlas()
 render_bundles(patient, fprefix + '/Bundles')
 '''
