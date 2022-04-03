@@ -13,13 +13,13 @@ from dipy.io.image import load_nifti
 from dipy.io.streamline import load_trk, save_trk
 import numpy as np
 import processing as pr
+from atlas import atlas
 
 
 class Patient:
     dti_seq_name = 'data_s'
     mask_seq_name = 'brain_mask'
     b0_seq_name = '25_ep2d_diff_mddw_64_p2_s2_b0_pa'
-    atlas_dir = os.path.dirname(__file__)  # '/home/miha/mri/scripts'
 
     def __init__(self, folder):
         self.folder = expanduser(folder)
@@ -76,32 +76,13 @@ class Patient:
             return streamlines
 
     @cached_property
-    def atlas(self):
-        fname = pjoin(self.atlas_dir, 'hcp842_80_atlas.npz')
-        f = dict(np.load(fname, allow_pickle=1))
-        self.label_names = f['label_names']
-        self.hierarchy = f['hierarchy']
-        # Has keys: streamlines, labels, label_names, hierarchy
-        return f
-
-    @cached_property
-    def atlas_centroids(self):
-        fname = pjoin(self.atlas_dir, 'hcp842_80_centroids.npz')
-        f = dict(np.load(fname, allow_pickle=1))
-        self.label_names = f['label_names']
-        self.hierarchy = f['hierarchy']
-        # Has keys: streamlines, labels, label_names, hierarchy
-        return f
-
-    @cached_property
     def regestered_streamlines(self):
         print('Registering patient to the Atlas...')
         from dipy.align.streamlinear import whole_brain_slr
 
-        atlas = self.atlas['streamlines']
         moved, self.transform, qb_centroids1, qb_centroids2 = whole_brain_slr(
-            atlas, self.streamlines, x0='affine', verbose=True, progressive=True,
-            rng=np.random.RandomState(1984))
+            atlas.streamlines, self.streamlines, x0='affine', verbose=True,
+            progressive=True, rng=np.random.RandomState(1984))
 
         return moved
 
@@ -117,23 +98,20 @@ class Patient:
             return f['predictions']
 
         except FileNotFoundError:
-            target = self.regestered_streamlines
-            centroids = self.atlas_centroids['streamlines']
-            clabels = self.atlas_centroids['labels']
-            predictions, self.is_reversed = pr.classify_streamlines(target, centroids, clabels)
+            predictions, self.is_reversed = pr.classify_streamlines(
+                self.regestered_streamlines, atlas.centroids, atlas.centroids_labels)
 
             np.savez(fname, predictions=predictions, is_reversed=self.is_reversed, transform=self.transform)
             return predictions
 
     @cached_property
     def classified_bundles(self):
-        centroids = self.atlas_centroids['streamlines']
-        clabels = self.atlas_centroids['labels']
         return pr.streamlines_as_dict(self.streamlines,
                                       self.streamlines_classification,
                                       self.is_reversed,
-                                      self.label_names,
-                                      centroids, clabels)
+                                      atlas.label_names,
+                                      atlas.centroids,
+                                      atlas.centroids_labels)
 
     @cached_property
     def profiles_weights(self):
@@ -143,11 +121,8 @@ class Patient:
             return dict(np.load(fname))
             print(f'Loaded profiles weights from {fname}')
         except FileNotFoundError:
-            cbundles = self.classified_bundles
-            centroids = self.atlas_centroids['streamlines']
-            clabels = self.atlas_centroids['labels']
-
-            weights = pr.get_profile_weights(cbundles, centroids, clabels)
+            weights = pr.get_profile_weights(
+                self.classified_bundles, atlas.centroids, atlas.centroids_labels)
             np.savez(fname, **weights)
             return weights
 
@@ -181,20 +156,21 @@ class Patient:
         return extract_features(patient_data)
 
 
-class Atlas(Patient):
+class AtlasPatient(Patient):
     def __init__(self):
         self.folder = ''
 
     @property
     def streamlines(self):
-        return self.atlas['streamlines']
+        return atlas.streamlines
 
     @property
     def regestered_streamlines(self):
-        return self.atlas['streamlines']
+        return atlas.streamlines
 
-    @property
+    @cached_property
     def streamlines_classification(self):
-        self.is_reversed = np.zeros(len(self.atlas['labels']))
-        return self.atlas['labels']
+        self.is_reversed = np.zeros(len(atlas.labels))
+        return atlas.labels
 
+atlas_patient = AtlasPatient()

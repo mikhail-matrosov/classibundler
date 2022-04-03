@@ -203,9 +203,11 @@ def render_bundle(streamlines, bundle, *,
         scene.camera_info()
 
 
-def render_bundles(patient, output_dir):
+def render_bundles(patient, output_dir, ghost=True, fa=True):
     # Render bundles
-    profiles = patient.profiles_metric('data_s_DKI_fa')
+    if fa:
+        profiles = patient.profiles_metric('data_s_DKI_fa')
+
     for b, cam_pos in bundle_viewpoints.items():
         try:
             features = sorted({
@@ -216,22 +218,23 @@ def render_bundles(patient, output_dir):
             )
 
             # With ghost and arrow
-            render_bundle(patient.streamlines[::10],
+            render_bundle(patient.streamlines[::10] if ghost else [],
                           patient.classified_bundles[b],
                           cam_pos=cam_pos,
                           features=features,
                           fname=pjoin(output_dir, f'{b}.jpg'),
                           arrow=1)
 
-            # FA With a colormap
-            render_bundle([],
-                          patient.classified_bundles[b],
-                          cam_pos=cam_pos,
-                          colorscheme='inferno',
-                          profiles=profiles[b]['profiles'],
-                          metric_name='FA',
-                          fname=pjoin(output_dir, f'{b}_FA.jpg'),
-                          )
+            if fa:
+                # FA With a colormap
+                render_bundle([],
+                              patient.classified_bundles[b],
+                              cam_pos=cam_pos,
+                              colorscheme='inferno',
+                              profiles=profiles[b]['profiles'],
+                              metric_name='FA',
+                              fname=pjoin(output_dir, f'{b}_FA.jpg'),
+                              )
         except:
             pass
 
@@ -255,13 +258,11 @@ bundle = patient.classified_bundles[bundle_name]
 profiles = patient.profiles_metric('data_s_DKI_fa')[bundle_name]['profiles']
 render_bundle([], bundle, cam_pos=cam_pos, colorscheme='inferno', profiles=profiles, metric_name='FA')
 
-# Render all
+# Render all bundles in a patient
 patient = Patient(patient_folder)
 render_bundles(patient, pjoin(patient_folder, 'PICS'))
 
-
-# Atlas
-from patient import Atlas
-patient = Atlas()
-render_bundles(patient, fprefix + '/Bundles')
+# Render atlas bundles
+from patient import atlas_patient
+render_bundles(atlas_patient, fprefix + '/Bundles', fa=0)
 '''

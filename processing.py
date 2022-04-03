@@ -16,7 +16,6 @@ import numpy as np
 from dipy.io.image import load_nifti
 import os
 from os.path import join as pjoin
-from features import features_unpacked
 
 
 def ensure_nifty(dicom_dir):
