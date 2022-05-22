@@ -38,6 +38,8 @@ features_unpacked = tuple(
     for s in slices
 )
 
+required_metrics = {f.metric for f in features_unpacked}
+
 
 def extract_features(patient_data):
     '''

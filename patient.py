@@ -14,6 +14,7 @@ from dipy.io.streamline import load_trk, save_trk
 import numpy as np
 import processing as pr
 from atlas import atlas
+import config
 
 
 class Patient:
@@ -87,7 +88,7 @@ class Patient:
         return moved
 
     @cached_property
-    def streamlines_classification(self):
+    def labels(self):
         fname = pjoin(self.proc_dir, 'streamlines_classification.npz')
 
         try:
@@ -105,9 +106,9 @@ class Patient:
             return predictions
 
     @cached_property
-    def classified_bundles(self):
+    def bundles(self):
         return pr.streamlines_as_dict(self.streamlines,
-                                      self.streamlines_classification,
+                                      self.labels,
                                       self.is_reversed,
                                       atlas.label_names,
                                       atlas.centroids,
@@ -122,11 +123,13 @@ class Patient:
             print(f'Loaded profiles weights from {fname}')
         except FileNotFoundError:
             weights = pr.get_profile_weights(
-                self.classified_bundles, atlas.centroids, atlas.centroids_labels)
+                self.bundles, atlas.centroids, atlas.centroids_labels)
             np.savez(fname, **weights)
             return weights
 
     def profiles_metric(self, metric_name):
+        # Map short name to filename, e.g. FA -> data_s_DKI_fa
+        metric_name = config.metrics.get(metric_name, metric_name)
         fname = pjoin(self.proc_dir, f'profiles_{metric_name}.npz')
 
         try:
@@ -136,7 +139,7 @@ class Patient:
             print(f'Loaded {metric_name} from {fname}')
             return profiles
         except FileNotFoundError:
-            cbundles = self.classified_bundles  # A dict of already oriented streamlines
+            cbundles = self.bundles  # A dict of already oriented streamlines
             weights = self.profiles_weights
             metric_fname = pjoin(self.nifty_dir, metric_name + '.nii.gz')
 
@@ -146,13 +149,8 @@ class Patient:
 
     @property
     def profiles_features(self):
-        from features import extract_features
-        patient_data = {
-            'FA': self.profiles_metric('data_s_DKI_fa'),
-            'RD': self.profiles_metric('data_s_DKI_rd'),
-            'AD': self.profiles_metric('data_s_DKI_ad'),
-            'MD': self.profiles_metric('data_s_DKI_md'),
-        }
+        from features import extract_features, required_metrics
+        patient_data = {k: self.profiles_metric(k) for k in required_metrics}
         return extract_features(patient_data)
 
 
@@ -169,7 +167,7 @@ class AtlasPatient(Patient):
         return atlas.streamlines
 
     @cached_property
-    def streamlines_classification(self):
+    def labels(self):
         self.is_reversed = np.zeros(len(atlas.labels))
         return atlas.labels
 

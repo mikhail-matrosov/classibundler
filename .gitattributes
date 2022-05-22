@@ -1,0 +1,2 @@
+hcp842_80_atlas.npz filter=lfs diff=lfs merge=lfs -text
+hcp842_80_centroids.npz filter=lfs diff=lfs merge=lfs -text

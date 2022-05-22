@@ -16,7 +16,6 @@ import sys
 
 from patient import Patient
 from drawing_utils import colorize_bundle
-from rendering import render_bundles
 import config
 
 import matplotlib
@@ -24,15 +23,16 @@ matplotlib.use('Agg')  # File rendering
 import matplotlib.pyplot as plt
 
 
+draw_metrics = 'FA RD AD MD'.split()
+
+
 def draw_profiles(patient_folder):
     patient = Patient(patient_folder)
-    fa_profiles = patient.profiles_metric('data_s_DKI_fa')
     profiles_dict = {
-        'FA': fa_profiles,
-        'RD': patient.profiles_metric('data_s_DKI_rd'),
-        'AD': patient.profiles_metric('data_s_DKI_ad'),
-        'MD': patient.profiles_metric('data_s_DKI_md')
+        m: patient.profiles_metric(m)
+        for m in draw_metrics
     }
+    fa_profiles = profiles_dict.get('FA') or patient.profiles_metric('FA')
 
     output_dir = pjoin(patient.folder, 'PICS')
     os.makedirs(output_dir, exist_ok=True)
@@ -60,7 +60,7 @@ def draw_profiles(patient_folder):
                 mean = profiles_dict[p][b]['mean']
                 std = profiles_dict[p][b]['std']
                 # All tracts
-                for profile, color in zip(profiles, colorize_bundle(patient.classified_bundles[b])):
+                for profile, color in zip(profiles, colorize_bundle(patient.bundles[b])):
                     plt.plot(profile, alpha=0.1, color=color)
                 plt.plot(mean, 'k', label=f'{p} {b} (N={N})')
                 plt.plot(mean+std, 'k--')
@@ -100,7 +100,7 @@ def draw_profiles(patient_folder):
                 mean = fa_profiles[b]['mean']
                 std = fa_profiles[b]['std']
                 # All tracts
-                for profile, color in zip(profiles, colorize_bundle(patient.classified_bundles[b])):
+                for profile, color in zip(profiles, colorize_bundle(patient.bundles[b])):
                     plt.plot(profile, alpha=0.1, color=color)
                 plt.plot(mean, 'k', label=f'{b} (N={N})')
                 plt.plot(mean+std, 'k--')
@@ -140,7 +140,7 @@ def draw_profiles(patient_folder):
                 mean = fa_profiles[b]['mean']
                 std = fa_profiles[b]['std']
                 # All tracts
-                for profile, color in zip(profiles, colorize_bundle(patient.classified_bundles[b])):
+                for profile, color in zip(profiles, colorize_bundle(patient.bundles[b])):
                     plt.plot(profile, alpha=0.1, color=color)
                 plt.plot(mean, 'k', label=f'{b} (N={N})')
                 plt.plot(mean+std, 'k--')
@@ -172,20 +172,32 @@ else:
     pool_map = map
 
 
-if len(sys.argv) > 1:
-    if sys.argv[1] == '-m':
-        # Process multiple patients from a folder
-        paths = [pjoin(f, p) for f in sys.argv[2:] for p in sorted(os.listdir(f))]
-        pool_map(draw_profiles, paths)
-    else:
-        pool_map(draw_profiles, sys.argv[1:])
+import argparse
+
+parser = argparse.ArgumentParser(description='Process some integers.')
+parser.add_argument('paths', nargs='*', help='list of paths')
+parser.add_argument('-r', '--render', action='store_true', help='render bundles for each patient')
+parser.add_argument('-m', '--multiple', action='store_true', help='process all patients in a directory')
+
+args = parser.parse_args()
+
+if args.render:
+    from rendering import render_bundles
 else:
-    print('''
+    render_bundles = lambda *x: None  # Do nothing
+
+if args.multiple:
+    # Process multiple patients from each directory
+    paths = [pjoin(f, p) for f in args.paths for p in sorted(os.listdir(f))]
+    pool_map(draw_profiles, paths)
+else:
+    pool_map(draw_profiles, args.paths)
+
+'''
 Usage:
     python3 draw_profiles.py path/to/patient1 path/to/patient2 path/to/patient3
     python3 draw_profiles.py -m path/to/group1 path/to/group2 path/to/group3
 '''
-)
 
 
 

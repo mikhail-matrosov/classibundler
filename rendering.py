@@ -219,7 +219,7 @@ def render_bundles(patient, output_dir, ghost=True, fa=True):
 
             # With ghost and arrow
             render_bundle(patient.streamlines[::10] if ghost else [],
-                          patient.classified_bundles[b],
+                          patient.bundles[b],
                           cam_pos=cam_pos,
                           features=features,
                           fname=pjoin(output_dir, f'{b}.jpg'),
@@ -228,14 +228,14 @@ def render_bundles(patient, output_dir, ghost=True, fa=True):
             if fa:
                 # FA With a colormap
                 render_bundle([],
-                              patient.classified_bundles[b],
+                              patient.bundles[b],
                               cam_pos=cam_pos,
                               colorscheme='inferno',
                               profiles=profiles[b]['profiles'],
                               metric_name='FA',
                               fname=pjoin(output_dir, f'{b}_FA.jpg'),
                               )
-        except:
+        except KeyError:
             pass
 
 
