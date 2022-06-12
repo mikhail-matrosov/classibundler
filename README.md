@@ -11,6 +11,9 @@ Is an extention of [Dipy](https://dipy.org/) package, including
 - An API for managing patients  
 - Tools for data visualization
 
+## Установка
+
+[Windows](docs/install-windows-ru.md)
 
 ## Checklist
 
