@@ -18,15 +18,17 @@ python draw_profiles.py -m $P/F3_MRT2
 python draw_groups.py
 '''
 
+from os.path import join as pjoin
+
 D = '/media/miha/0c44a000-6bfa-4732-929b-f31bc6cf4011/miha/YandexDisk/MRI/Alexey'
-mri_dir = D + '/Patients'
-output_dir = D + '/Plots'
+mri_dir = pjoin(D, 'Patients')
+output_dir = pjoin(D, 'Plots')
 
 profiles_slice = slice(5, 95)  # slice(None) - all
 draw_healthy = True  # For each single patient
 render_whole_brain_ghost = True
 group_names = ('Healthy', 'F3_MRT2')
-nthreads = 4  # 1 for singleprocessing
+nthreads = 1  # 1 for singleprocessing
 
 metrics = {
     'FA': 'data_s_DKI_fa',

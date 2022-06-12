@@ -160,8 +160,6 @@ def draw_profiles(patient_folder):
 
 
 print(sys.argv)
-#folder = '/home/miha/mri/Healthy/GadzhievATO'
-folder = sys.argv[-1]
 
 # Multiprocessing
 if config.nthreads > 1:
@@ -169,7 +167,7 @@ if config.nthreads > 1:
     pool = ProcessPoolExecutor(config.nthreads)
     pool_map = pool.map
 else:
-    pool_map = map
+    pool_map = lambda *x: [*map(*x)]
 
 
 import argparse
