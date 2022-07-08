@@ -176,5 +176,6 @@ def swap_left_right_dict_keys(d):
             return s[:-2] + '_R'
         if s.endswith('_R'):
             return s[:-2] + '_L'
+        return s
     return {swap_lr(k): v for k, v in d.items()}
 
