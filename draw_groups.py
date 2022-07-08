@@ -11,6 +11,7 @@ import os
 from os.path import join as pjoin
 from scipy.stats import ttest_ind_from_stats
 
+from processing import swap_left_right_dict_keys
 from patient import Patient
 from atlas import atlas
 import config
@@ -48,8 +49,8 @@ def means_std(means, stds):
 
 for gn in config.group_names:
     gdir = pjoin(config.mri_dir, gn)
-    patients_names = sorted(p for p in os.listdir(gdir) if '!' not in p)
     patients_data = []
+    patients_names = sorted(p for p in os.listdir(gdir) if '!' not in p)
 
     for p in patients_names:
         patient = Patient(pjoin(gdir, p))
@@ -57,6 +58,18 @@ for gn in config.group_names:
             m: patient.profiles_metric(m)
             for m in required_metrics
         })
+
+    # Load symmetric patients
+    if gn in config.left_right_symmetries:
+        gdir = pjoin(config.mri_dir, config.left_right_symmetries[gn])
+        patients_names_sym = sorted(p for p in os.listdir(gdir) if '!' not in p)
+        patients_names.extend(patients_names_sym)
+        for p in patients_names_sym:
+            patient = Patient(pjoin(gdir, p))
+            patients_data.append({
+                m: swap_left_right_dict_keys(patient.profiles_metric(m))
+                for m in required_metrics
+            })
 
     label_names = atlas.label_names
 
@@ -82,6 +95,7 @@ for gn in config.group_names:
         for pn, pdata in zip(patients_names, patients_data)
     }
     # Write features to a file
+    gn = gn.replace('/', '').replace('\\', '')
     with open(pjoin(config.output_dir, f'Features_{gn}.csv'), 'wt') as f:
         fns = [f.name for f in features.features_unpacked]  # Feature names
         header = ','.join([''] + [col for h in fns for col in (h, 'std')])
@@ -169,8 +183,8 @@ def plot_1(with_rainbow, with_pvalue):
                         ax2.set_ylim(1, 1e-6)  # ax2.get_ylim()[0])
                         plt.legend(loc='upper right')
 
-    groups = '_'.join(config.group_names)
-    metrics = '_'.join(draw_metrics)
+    groups = '_'.join(config.group_names).replace('/','').replace('\\','')
+    metrics = '_'.join(draw_metrics).replace('/','').replace('\\','')
     suffix = ('R' if with_rainbow else '') + ('P' if with_pvalue else '')
     fname = pjoin(config.output_dir,
                   f"profiles_{groups}_{metrics}{suffix and '_'+suffix}")
@@ -235,7 +249,8 @@ for r, bs in enumerate(bundle_names):
                     plt.legend(loc='upper right')
 
 
-fname = pjoin(config.output_dir, f"profiles_{'_'.join(config.group_names)}_2")
+gns = '_'.join(config.group_names).replace('/','').replace('\\','')
+fname = pjoin(config.output_dir, f"profiles_{gns}_2")
 #plt.savefig(fname + '.pdf')
 # plt.savefig(fname + '.svg')
 plt.savefig(fname + '.png', dpi=150, bbox_inches='tight')
@@ -289,7 +304,7 @@ for r, bs in enumerate(bundle_names):
                     plt.legend(loc='upper right')
 
 
-fname = pjoin(config.output_dir, f"profiles_{'_'.join(config.group_names)}_3")
+fname = pjoin(config.output_dir, f"profiles_{gns}_3")
 #plt.savefig(fname + '.pdf')
 # plt.savefig(fname + '.svg')
 plt.savefig(fname + '.png', dpi=150, bbox_inches='tight')

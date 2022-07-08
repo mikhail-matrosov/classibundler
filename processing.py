@@ -168,3 +168,13 @@ def get_profile_metric(cbundles, profiles_weights, metric_fname):
     m, affine = load_nifti(metric_fname)
     return {k: get_bundle_profile(cbundles[k], profiles_weights[k], m, affine)
             for k, w in profiles_weights.items()}
+
+
+def swap_left_right_dict_keys(d):
+    def swap_lr(s):
+        if s.endswith('_L'):
+            return s[:-2] + '_R'
+        if s.endswith('_R'):
+            return s[:-2] + '_L'
+    return {swap_lr(k): v for k, v in d.items()}
+

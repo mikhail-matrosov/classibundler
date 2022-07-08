@@ -27,7 +27,10 @@ output_dir = pjoin(D, 'Plots')
 profiles_slice = slice(5, 95)  # slice(None) - all
 draw_healthy = True  # For each single patient
 render_whole_brain_ghost = True
-group_names = ('Healthy', 'F3_MRT2')
+group_names = ('Healthy', 'MCAstroke/Left')
+left_right_symmetries = {
+    'MCAstroke/Left': 'MCAstroke/Right'
+}
 nthreads = 1  # 1 for singleprocessing
 
 metrics = {
