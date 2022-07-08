@@ -137,7 +137,6 @@ class Patient:
             for k, v in profiles.items():
                 profiles[k] = v.tolist()
             print(f'Loaded {metric_name} from {fname}')
-            return profiles
         except FileNotFoundError:
             cbundles = self.bundles  # A dict of already oriented streamlines
             weights = self.profiles_weights
@@ -145,7 +144,8 @@ class Patient:
 
             profiles = pr.get_profile_metric(cbundles, weights, metric_fname)
             np.savez(fname, **profiles)
-            return profiles
+
+        return profiles
 
     @property
     def profiles_features(self):

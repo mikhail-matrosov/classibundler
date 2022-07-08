@@ -11,7 +11,7 @@ import os
 from os.path import join as pjoin
 from scipy.stats import ttest_ind_from_stats
 
-from processing import swap_left_right_dict_keys
+from processing import profiles_metric_reflect_left_right
 from patient import Patient
 from atlas import atlas
 import config
@@ -67,7 +67,7 @@ for gn in config.group_names:
         for p in patients_names_sym:
             patient = Patient(pjoin(gdir, p))
             patients_data.append({
-                m: swap_left_right_dict_keys(patient.profiles_metric(m))
+                m: profiles_metric_reflect_left_right(patient.profiles_metric(m))
                 for m in required_metrics
             })
 

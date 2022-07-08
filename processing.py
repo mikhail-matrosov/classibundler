@@ -170,12 +170,33 @@ def get_profile_metric(cbundles, profiles_weights, metric_fname):
             for k, w in profiles_weights.items()}
 
 
-def swap_left_right_dict_keys(d):
-    def swap_lr(s):
-        if s.endswith('_L'):
-            return s[:-2] + '_R'
-        if s.endswith('_R'):
-            return s[:-2] + '_L'
-        return s
-    return {swap_lr(k): v for k, v in d.items()}
+def profiles_metric_reflect_left_right(metric):
+    result = {}
+    for k, v in metric.items():
+        if k.endswith('_L'):
+            result[k[:-2] + '_R'] = v
+        elif k.endswith('_R'):
+            result[k[:-2] + '_L'] = v
+        else:
+            # Reverse all symmetric bundles because they go from left to right
+            result[k] = {m: arr[..., ::-1] for m, arr in v.items()}
+    return result
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
